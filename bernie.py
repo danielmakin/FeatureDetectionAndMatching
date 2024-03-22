@@ -12,7 +12,7 @@ def ReadImage(path):
 def HarrisPointDetector():
     bernie = ReadImage("bernieSanders.jpg")
     # Calculate the Gradients
-    bernie = SobelOperator(bernie)
+    sob_x, sob_y = SobelOperators(bernie)
 
 def SobelOperators(img):
     #Pad the Image
