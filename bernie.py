@@ -118,6 +118,54 @@ def ProcessImage(path):
 
     FeatureDescription(bernie, points)
 
+def ssd(p1, p2):
+    return (((p2.pt[0] - p1.pt[0]) ** 2) + ((p2.pt[1] - p1.pt[1]) ** 2)) ** 0.5
+
+def best_match(p1s, p2s, ratio):
+    '''Get the Best Matching Feature in Both'''
+
+    arr = []
+
+    for i in range(len(p1s)):
+        tmp = []
+        for j in range(len(p2s)):
+            # Calculate the Distance Between Every Feature
+            tmp.append(ssd(p1s[i], p2s[i]))
+        # Add the Distances for this Pixel
+        arr.append(tmp)
+
+    # Sort the Arrays
+    sorted_arr = [sorted(sub_array, reverse=True) for sub_array in arr]
+
+
+    while True:
+        index_of_max = max(range(len(sorted_arr)), key=lambda i: sorted_arr[i][0])
+
+        if sorted_arr[index_of_max][0] == float('-inf'):
+            # This means no Solution has been Found
+            index_of_max = -1
+            break
+
+        # Now Check the Ratio
+        if sorted_arr[index_of_max][1] / sorted_arr[index_of_max][0] > ratio:
+            # This Feature can't be used again
+            sorted_arr[index_of_max][0] = float('-inf')
+        else:
+            break
+
+    # Check Whether One was Found
+    
+
+
+    # Now get the best Features
+
+
+    # Get the Highest Value
+
+
+
+
+
 ims = ['bernieSanders.jpg', 'bernie180.jpg', 
        'bernieBenefitBeautySalon.jpeg', 'BernieFriends.png', 
        'bernieMoreblurred.jpg', 'bernieNoisy2.png', 
@@ -126,12 +174,4 @@ ims = ['bernieSanders.jpg', 'bernie180.jpg',
 
 for im in ims:
     ProcessImage("Bernies/" + im)
-
-# ProcessImage("bernieSanders.jpg")
-
-# ProcessImage("Bernies/bernieBenefitBeautySalon.jpeg")
-
-# ProcessImage("Bernies/bernieShoolLunch.jpeg")
-
-# ProcessImage("Bernies/bernie180.jpg")
 
