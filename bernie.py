@@ -104,7 +104,7 @@ def ConvertToKeyPoints(arr):
 def ProcessImage(path):
     '''Return the Feature Descriptors and KPs'''
     points, orien = HarrisPointDetector(path)
-    points = ThresholdPoints(points, 0.025)
+    points = ThresholdPoints(points, 0.04)
     bernie = ReadImage(path)
     des, points = FeatureDescription(bernie, points)
     return points, des
@@ -165,7 +165,7 @@ for im in ims:
     kps_temp, des_temp = ProcessImage("Bernies/" + im)
 
     # Now get the Matches
-    matches = best_match(kps, kps_temp, des, des_temp, 0.8)
+    matches = best_match(kps, kps_temp, des, des_temp, 0.7)
 
     mi = draw_lines("Bernies/bernieSanders.jpg", "Bernies/" + im, kps, kps_temp, matches)
 
