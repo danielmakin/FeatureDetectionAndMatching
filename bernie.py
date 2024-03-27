@@ -2,6 +2,7 @@
 import cv2
 from matplotlib import pyplot as plt
 import numpy as np
+import copy
 
 print(cv2.__version__)
 
@@ -78,26 +79,16 @@ def PlotGraph(points):
 def FeatureDescription(img, kp):
     # Initiate ORB detector
     orb = cv2.ORB_create()
-    # Compute the descriptors with ORB
-    # Find the keypoints with ORB
 
     kps = ConvertToKeyPoints(kp)
-    kp, my_des = orb.compute(img, kps)
-    # img2 = cv2.drawKeypoints(img, kp, None, color=(0,255,0), flags=0)
-    # plt.imshow(img2)
-    # plt.show()
+    kps, my_des = orb.compute(img, kps)
 
 
     kp = orb.detect(img,None)
 
     kp, des = orb.compute(img, kp)
-    # draw only keypoints location,not size and orientation
-    # img2 = cv2.drawKeypoints(img, kp, None, color=(0,255,0), flags=0)
-    # plt.imshow(img2), plt.show()
 
-    # print(my_des)
-
-    return my_des
+    return my_des, kps
 
 def ConvertToKeyPoints(arr):
     kps = []
@@ -115,7 +106,7 @@ def ProcessImage(path):
     points, orien = HarrisPointDetector(path)
     points = ThresholdPoints(points, 0.025)
     bernie = ReadImage(path)
-    des = FeatureDescription(bernie, points)
+    des, points = FeatureDescription(bernie, points)
     return points, des
 
 def ssd(p1, p2):
@@ -131,53 +122,28 @@ def best_match(p1s, p2s, d1s, d2s, ratio):
         for j in range(len(d2s)):
             # Calculate the Distance Between Every Feature
             arr[i][j] = ssd(d1s[i], d2s[j])
-    print(arr)
 
     matches = []
 
-    while True:
-        # Find the Array that Has the Highest Index
-        i = np.argmax(np.max(arr, axis=1))
-        # Get that array located at the index
-        sub_array = arr[i]
-        # Reset that Index incase the Loop is ran again
-        tmp = [0 for _ in range(len(p2s))]
-        arr[i] = tmp
-        # Now find the highest index of that array
-        j = np.argmax(sub_array)
+    for i, p in enumerate(arr):
+        # Get the Index and Value of the Highest Element
+        p_temp = copy.deepcopy(p)
+        j = np.argmax(p_temp)
+        val = p_temp[j]
+        # Get the Second Highest
+        p_temp[j] = -1
+        second_val = np.argmax(p_temp)
 
-        # Store that Value in the Variable
-        max_val = sub_array[j]
+        if val == 0 or second_val == 0:
+            continue
 
-        print(max_val)
-
-        if max_val == 0:
-            # This Means no Values are Left
-            print("No Match Found")
-            break
-        sub_array[j] = -1
-
-        # Then get the second Highest
-        k = np.argmax(sub_array)
-        second_max_val = sub_array[k]
-
-        # Calculate the Ratio
-        r = second_max_val / max_val
-
-        # print(r)
-
-        # if r < ratio:
-        tmp = cv2.DMatch(i, j, max_val)
-
-        matches.append(tmp)
+        # Check the Ratio
+        if second_val / val < ratio:
+            tmp = cv2.DMatch(i, j, val)
+            matches.append(tmp)
 
     # Return the Points that Are Relevant to This
     return matches
-
-    # Now get the best Features
-
-
-    # Get the Highest Value
 
 def draw_lines(img1, img2, p1, p2, matches):
     ref = ReadImage(img1)
@@ -185,10 +151,7 @@ def draw_lines(img1, img2, p1, p2, matches):
 
     matched_img = cv2.drawMatches(ref, p1, curr, p2, matches, None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
 
-    cv2.imshow('Matches', matched_img)
-    cv2.waitKey(0)
-
-
+    return matched_img
 
 ims = ['bernie180.jpg', 'darkerBernie.jpg',
        'bernieBenefitBeautySalon.jpeg', 'BernieFriends.png', 
@@ -204,8 +167,9 @@ for im in ims:
     # Now get the Matches
     matches = best_match(kps, kps_temp, des, des_temp, 0.8)
 
-    draw_lines("Bernies/bernieSanders.jpg", "Bernies/" + im, kps, kps_temp, matches)
+    mi = draw_lines("Bernies/bernieSanders.jpg", "Bernies/" + im, kps, kps_temp, matches)
 
-    print("Done")
+    # Save this Image
+    cv2.imwrite("OutputFiles/" + im, mi)
 
 
