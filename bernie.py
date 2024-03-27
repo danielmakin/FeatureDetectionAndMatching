@@ -78,25 +78,26 @@ def PlotGraph(points):
 def FeatureDescription(img, kp):
     # Initiate ORB detector
     orb = cv2.ORB_create()
-    # compute the descriptors with ORB
-    # find the keypoints with ORB
+    # Compute the descriptors with ORB
+    # Find the keypoints with ORB
 
     kps = ConvertToKeyPoints(kp)
-    kp, des = orb.compute(img, kps)
-    img2 = cv2.drawKeypoints(img, kp, None, color=(0,255,0), flags=0)
-    plt.imshow(img2), plt.show()
+    kp, my_des = orb.compute(img, kps)
+    # img2 = cv2.drawKeypoints(img, kp, None, color=(0,255,0), flags=0)
+    # plt.imshow(img2)
+    # plt.show()
 
 
     kp = orb.detect(img,None)
 
     kp, des = orb.compute(img, kp)
     # draw only keypoints location,not size and orientation
-    img2 = cv2.drawKeypoints(img, kp, None, color=(0,255,0), flags=0)
-    plt.imshow(img2), plt.show()
+    # img2 = cv2.drawKeypoints(img, kp, None, color=(0,255,0), flags=0)
+    # plt.imshow(img2), plt.show()
 
-    print(des.shape)
+    # print(my_des)
 
-    return des
+    return my_des
 
 def ConvertToKeyPoints(arr):
     kps = []
@@ -110,68 +111,101 @@ def ConvertToKeyPoints(arr):
     return kps
 
 def ProcessImage(path):
+    '''Return the Feature Descriptors and KPs'''
     points, orien = HarrisPointDetector(path)
-
     points = ThresholdPoints(points, 0.025)
-
     bernie = ReadImage(path)
-
-    FeatureDescription(bernie, points)
+    des = FeatureDescription(bernie, points)
+    return points, des
 
 def ssd(p1, p2):
-    return (((p2.pt[0] - p1.pt[0]) ** 2) + ((p2.pt[1] - p1.pt[1]) ** 2)) ** 0.5
+    # Get the Distance Between
+    return np.linalg.norm(p1 - p2)
 
-def best_match(p1s, p2s, ratio):
+def best_match(p1s, p2s, d1s, d2s, ratio):
     '''Get the Best Matching Feature in Both'''
 
-    arr = []
+    arr = [[0 for _ in range(len(p2s))] for _ in range(len(p1s))]
 
-    for i in range(len(p1s)):
-        tmp = []
-        for j in range(len(p2s)):
+    for i in range(len(d1s)):
+        for j in range(len(d2s)):
             # Calculate the Distance Between Every Feature
-            tmp.append(ssd(p1s[i], p2s[i]))
-        # Add the Distances for this Pixel
-        arr.append(tmp)
+            arr[i][j] = ssd(d1s[i], d2s[j])
+    print(arr)
 
-    # Sort the Arrays
-    sorted_arr = [sorted(sub_array, reverse=True) for sub_array in arr]
-
+    matches = []
 
     while True:
-        index_of_max = max(range(len(sorted_arr)), key=lambda i: sorted_arr[i][0])
+        # Find the Array that Has the Highest Index
+        i = np.argmax(np.max(arr, axis=1))
+        # Get that array located at the index
+        sub_array = arr[i]
+        # Reset that Index incase the Loop is ran again
+        tmp = [0 for _ in range(len(p2s))]
+        arr[i] = tmp
+        # Now find the highest index of that array
+        j = np.argmax(sub_array)
 
-        if sorted_arr[index_of_max][0] == float('-inf'):
-            # This means no Solution has been Found
-            index_of_max = -1
+        # Store that Value in the Variable
+        max_val = sub_array[j]
+
+        print(max_val)
+
+        if max_val == 0:
+            # This Means no Values are Left
+            print("No Match Found")
             break
+        sub_array[j] = -1
 
-        # Now Check the Ratio
-        if sorted_arr[index_of_max][1] / sorted_arr[index_of_max][0] > ratio:
-            # This Feature can't be used again
-            sorted_arr[index_of_max][0] = float('-inf')
-        else:
-            break
+        # Then get the second Highest
+        k = np.argmax(sub_array)
+        second_max_val = sub_array[k]
 
-    # Check Whether One was Found
-    
+        # Calculate the Ratio
+        r = second_max_val / max_val
 
+        # print(r)
+
+        # if r < ratio:
+        tmp = cv2.DMatch(i, j, max_val)
+
+        matches.append(tmp)
+
+    # Return the Points that Are Relevant to This
+    return matches
 
     # Now get the best Features
 
 
     # Get the Highest Value
 
+def draw_lines(img1, img2, p1, p2, matches):
+    ref = ReadImage(img1)
+    curr = ReadImage(img2)
+
+    matched_img = cv2.drawMatches(ref, p1, curr, p2, matches, None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+
+    cv2.imshow('Matches', matched_img)
+    cv2.waitKey(0)
 
 
 
-
-ims = ['bernieSanders.jpg', 'bernie180.jpg', 
+ims = ['bernie180.jpg', 'darkerBernie.jpg',
        'bernieBenefitBeautySalon.jpeg', 'BernieFriends.png', 
        'bernieMoreblurred.jpg', 'bernieNoisy2.png', 
        'berniePixelated2.png', 'bernieShoolLunch.jpeg', 
-       'brighterBernie.jpg','darkerBernie.jpg']
+       'brighterBernie.jpg']
+
+kps, des = ProcessImage("Bernies/bernieSanders.jpg")
 
 for im in ims:
-    ProcessImage("Bernies/" + im)
+    kps_temp, des_temp = ProcessImage("Bernies/" + im)
+
+    # Now get the Matches
+    matches = best_match(kps, kps_temp, des, des_temp, 0.8)
+
+    draw_lines("Bernies/bernieSanders.jpg", "Bernies/" + im, kps, kps_temp, matches)
+
+    print("Done")
+
 
