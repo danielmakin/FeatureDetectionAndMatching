@@ -49,44 +49,51 @@ def ThresholdPoints(points, threshold):
     max = np.max(points)
     points = points * (points > max * threshold)
     return points
-    
+
 def GetThresholdPoints(points):
     '''Get the Number of Items lt that Threshold value '''
     arr = []
+    increments = [0.05 * i for i in range(1, 21)]  # Generate increments from 0.05 to 1.0 in steps of 0.05
 
-    for threshold in range(int(np.max(points)) + 1):
-        binary_image = points > threshold
+    max = np.max(points)
+
+    for inc in increments:
+        binary_image = points/max > inc
     
         # Count the number of keypoints
         num_keypoints = np.sum(binary_image)
 
         arr.append(num_keypoints)
 
-    return arr
+    return increments, arr
 
-def PlotGraph(points):
+def PlotGraph(points, path):
 
-    vals = GetThresholdPoints(points)
+    x, y = GetThresholdPoints(points)
 
     # Plot the Effect of the Threshold Value being Changed
-    plt.plot(vals)
+    plt.plot(x, y)
     plt.xlabel('Threshold Value')
     plt.ylabel('Number of Keypoints')
     plt.title('Number of Keypoints vs. Threshold Value')
     plt.grid(True)
-    plt.savefig("KeyPointsvThreshold.png")
+    plt.savefig("ThresholdGraphs/" + path)
+    plt.clf()
 
-def FeatureDescription(img, kp):
+def FeatureDescription(img, kp, path):
     # Initiate ORB detector
     orb = cv2.ORB_create()
 
     kps = ConvertToKeyPoints(kp)
     kps, my_des = orb.compute(img, kps)
+    img2 = cv2.drawKeypoints(img, kps, None, color=(0,255,0), flags=0)
+    cv2.imwrite("MyKeyPoints/" + path, img2)
 
 
     kp = orb.detect(img,None)
-
     kp, des = orb.compute(img, kp)
+    img2 = cv2.drawKeypoints(img, kp, None, color=(0,255,0), flags=0)
+    cv2.imwrite("ORBKeyPoints/" + path, img2)
 
     return my_des, kps
 
@@ -103,17 +110,18 @@ def ConvertToKeyPoints(arr):
 
 def ProcessImage(path):
     '''Return the Feature Descriptors and KPs'''
-    points, orien = HarrisPointDetector(path)
+    points, orien = HarrisPointDetector("Bernies/" + path)
+    PlotGraph(points, path)
     points = ThresholdPoints(points, 0.04)
-    bernie = ReadImage(path)
-    des, points = FeatureDescription(bernie, points)
+    bernie = ReadImage("Bernies/" + path)
+    des, points = FeatureDescription(bernie, points, path)
     return points, des
 
-def ssd(p1, p2):
+def SSD(p1, p2):
     # Get the Distance Between
     return np.linalg.norm(p1 - p2)
 
-def best_match(p1s, p2s, d1s, d2s, ratio):
+def BestMatch(p1s, p2s, d1s, d2s, ratio):
     '''Get the Best Matching Feature in Both'''
 
     arr = [[0 for _ in range(len(p2s))] for _ in range(len(p1s))]
@@ -121,7 +129,7 @@ def best_match(p1s, p2s, d1s, d2s, ratio):
     for i in range(len(d1s)):
         for j in range(len(d2s)):
             # Calculate the Distance Between Every Feature
-            arr[i][j] = ssd(d1s[i], d2s[j])
+            arr[i][j] = SSD(d1s[i], d2s[j])
 
     matches = []
 
@@ -145,7 +153,7 @@ def best_match(p1s, p2s, d1s, d2s, ratio):
     # Return the Points that Are Relevant to This
     return matches
 
-def draw_lines(img1, img2, p1, p2, matches):
+def DrawLines(img1, img2, p1, p2, matches):
     ref = ReadImage(img1)
     curr = ReadImage(img2)
 
@@ -153,23 +161,25 @@ def draw_lines(img1, img2, p1, p2, matches):
 
     return matched_img
 
+def PlotRatios():
+    pass # TODO:: IMPLEMENT
+
 ims = ['bernie180.jpg', 'darkerBernie.jpg',
        'bernieBenefitBeautySalon.jpeg', 'BernieFriends.png', 
        'bernieMoreblurred.jpg', 'bernieNoisy2.png', 
        'berniePixelated2.png', 'bernieShoolLunch.jpeg', 
        'brighterBernie.jpg']
 
-kps, des = ProcessImage("Bernies/bernieSanders.jpg")
+kps, des = ProcessImage("bernieSanders.jpg")
 
 for im in ims:
-    kps_temp, des_temp = ProcessImage("Bernies/" + im)
+    kps_temp, des_temp = ProcessImage(im)
 
     # Now get the Matches
-    matches = best_match(kps, kps_temp, des, des_temp, 0.7)
+    matches = BestMatch(kps, kps_temp, des, des_temp, 0.7)
 
-    mi = draw_lines("Bernies/bernieSanders.jpg", "Bernies/" + im, kps, kps_temp, matches)
+    mi = DrawLines("Bernies/bernieSanders.jpg", "Bernies/" + im, kps, kps_temp, matches)
 
     # Save this Image
     cv2.imwrite("OutputFiles/" + im, mi)
-
 
