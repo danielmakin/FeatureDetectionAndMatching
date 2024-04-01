@@ -153,8 +153,6 @@ def BestMatch(p1s, p2s, d1s, d2s, ratio, path):
         if second_val / val < ratio:
             tmp = cv2.DMatch(i, j, val)
             matches.append(tmp)
-        else:
-            print(str(second_val / val))
 
         second_val = 0
         val = 0
@@ -204,8 +202,8 @@ ims = ['bernie180.jpg', 'darkerBernie.jpg',
        'berniePixelated2.png', 'bernieShoolLunch.jpeg', 
        'brighterBernie.jpg']
 
-kpthres = [0.04, 0.6, 0.04, 0.04, 0.04, 0.04, 0.05, 0.04, 0.04]
-rvals = [0.93, 0.93, 0.93, 0.93, 0.93, 0.93, 0.93, 0.93, 0.93]
+kpthres = [0.04, 0.6, 0.2, 0.1, 0.03, 0.38, 0.35, 0.04, 0.04]
+rvals = [0.93, 0.94, 0.93, 0.94, 0.93, 0.93, 0.94, 0.95, 0.93]
 
 kps, des = ProcessImage("bernieSanders.jpg", 0.04)
 
