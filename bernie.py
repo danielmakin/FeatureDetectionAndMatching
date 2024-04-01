@@ -108,11 +108,11 @@ def ConvertToKeyPoints(arr):
 
     return kps
 
-def ProcessImage(path):
+def ProcessImage(path, thres):
     '''Return the Feature Descriptors and KPs'''
     points, orien = HarrisPointDetector("Bernies/" + path)
     PlotGraph(points, path)
-    points = ThresholdPoints(points, 0.04)
+    points = ThresholdPoints(points, thres)
     bernie = ReadImage("Bernies/" + path)
     des, points = FeatureDescription(bernie, points, path)
     return points, des
@@ -121,7 +121,7 @@ def SSD(p1, p2):
     # Get the Distance Between
     return np.linalg.norm(p1 - p2)
 
-def BestMatch(p1s, p2s, d1s, d2s, ratio):
+def BestMatch(p1s, p2s, d1s, d2s, ratio, path):
     '''Get the Best Matching Feature in Both'''
 
     arr = [[0 for _ in range(len(p2s))] for _ in range(len(p1s))]
@@ -132,6 +132,7 @@ def BestMatch(p1s, p2s, d1s, d2s, ratio):
             arr[i][j] = SSD(d1s[i], d2s[j])
 
     matches = []
+    vals = []
 
     for i, p in enumerate(arr):
         # Get the Index and Value of the Highest Element
@@ -140,17 +141,27 @@ def BestMatch(p1s, p2s, d1s, d2s, ratio):
         val = p_temp[j]
         # Get the Second Highest
         p_temp[j] = -1
-        second_val = np.argmax(p_temp)
+        second_val = p_temp[np.argmax(p_temp)]
 
         if val == 0 or second_val == 0:
             continue
+
+
+        vals.append(second_val / val)
 
         # Check the Ratio
         if second_val / val < ratio:
             tmp = cv2.DMatch(i, j, val)
             matches.append(tmp)
+        else:
+            print(str(second_val / val))
+
+        second_val = 0
+        val = 0
 
     # Return the Points that Are Relevant to This
+            
+    PlotRatios(vals, path)
     return matches
 
 def DrawLines(img1, img2, p1, p2, matches):
@@ -161,8 +172,31 @@ def DrawLines(img1, img2, p1, p2, matches):
 
     return matched_img
 
-def PlotRatios():
-    pass # TODO:: IMPLEMENT
+def GetRatioGraphValues(vals):
+    '''Get the Number of Items lt that Threshold value '''
+    vals = np.array(vals)
+
+    arr = []
+    increments = [0.05 * i for i in range(1, 21)]  # Generate increments from 0.05 to 1.0 in steps of 0.05
+
+    max = np.max(vals)
+
+    for inc in increments:
+        arr.append(np.count_nonzero(vals > inc))
+
+    return increments, arr
+
+def PlotRatios(vals, path):
+    x, y = GetRatioGraphValues(vals)
+
+    # Plot the Effect of the Threshold Value being Changed
+    plt.plot(x, y)
+    plt.xlabel('Threshold Value')
+    plt.ylabel('Number of Keypoints')
+    plt.title('Number of Keypoints vs. Ratio Threshold Value')
+    plt.grid(True)
+    plt.savefig("RatioThresholdGraphs/" + path)
+    plt.clf()
 
 ims = ['bernie180.jpg', 'darkerBernie.jpg',
        'bernieBenefitBeautySalon.jpeg', 'BernieFriends.png', 
@@ -170,16 +204,19 @@ ims = ['bernie180.jpg', 'darkerBernie.jpg',
        'berniePixelated2.png', 'bernieShoolLunch.jpeg', 
        'brighterBernie.jpg']
 
-kps, des = ProcessImage("bernieSanders.jpg")
+kpthres = [0.04, 0.6, 0.04, 0.04, 0.04, 0.04, 0.05, 0.04, 0.04]
+rvals = [0.93, 0.93, 0.93, 0.93, 0.93, 0.93, 0.93, 0.93, 0.93]
 
-for im in ims:
-    kps_temp, des_temp = ProcessImage(im)
+kps, des = ProcessImage("bernieSanders.jpg", 0.04)
+
+for i in range(len(ims)):
+    kps_temp, des_temp = ProcessImage(ims[i], kpthres[i])
 
     # Now get the Matches
-    matches = BestMatch(kps, kps_temp, des, des_temp, 0.7)
+    matches = BestMatch(kps, kps_temp, des, des_temp, rvals[i], ims[i])
 
-    mi = DrawLines("Bernies/bernieSanders.jpg", "Bernies/" + im, kps, kps_temp, matches)
+    mi = DrawLines("Bernies/bernieSanders.jpg", "Bernies/" + ims[i], kps, kps_temp, matches)
 
     # Save this Image
-    cv2.imwrite("OutputFiles/" + im, mi)
+    cv2.imwrite("OutputFiles/" + ims[i], mi)
 
