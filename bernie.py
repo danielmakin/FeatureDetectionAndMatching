@@ -203,7 +203,7 @@ ims = ['bernie180.jpg', 'darkerBernie.jpg',
        'brighterBernie.jpg']
 
 kpthres = [0.04, 0.6, 0.2, 0.1, 0.03, 0.38, 0.35, 0.04, 0.04]
-rvals = [0.93, 0.94, 0.93, 0.94, 0.93, 0.93, 0.94, 0.95, 0.93]
+rvals = [0.945, 0.94, 0.93, 0.94, 0.93, 0.93, 0.94, 0.95, 0.94]
 
 kps, des = ProcessImage("bernieSanders.jpg", 0.04)
 
