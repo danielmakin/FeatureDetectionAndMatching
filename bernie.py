@@ -137,20 +137,20 @@ def BestMatch(p1s, p2s, d1s, d2s, ratio, path):
     for i, p in enumerate(arr):
         # Get the Index and Value of the Highest Element
         p_temp = copy.deepcopy(p)
-        j = np.argmax(p_temp)
+        j = np.argmin(p_temp)
         val = p_temp[j]
         # Get the Second Highest
-        p_temp[j] = -1
-        second_val = p_temp[np.argmax(p_temp)]
+        p_temp[j] = float('inf')
+        second_val = p_temp[np.argmin(p_temp)]
 
         if val == 0 or second_val == 0:
             continue
 
 
-        vals.append(second_val / val)
+        vals.append(val / second_val)
 
         # Check the Ratio
-        if second_val / val < ratio:
+        if val / second_val < ratio:
             tmp = cv2.DMatch(i, j, val)
             matches.append(tmp)
 
@@ -203,7 +203,7 @@ ims = ['bernie180.jpg', 'darkerBernie.jpg',
        'brighterBernie.jpg']
 
 kpthres = [0.04, 0.6, 0.2, 0.1, 0.03, 0.38, 0.35, 0.04, 0.04]
-rvals = [0.945, 0.94, 0.93, 0.94, 0.93, 0.93, 0.94, 0.95, 0.94]
+rvals = [0.88, 0.88, 0.85, 0.85, 0.85, 0.88, 0.85, 0.85, 0.85]
 
 kps, des = ProcessImage("bernieSanders.jpg", 0.04)
 
